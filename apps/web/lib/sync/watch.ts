@@ -4,8 +4,9 @@ import { getSettings, updateSettings } from "../settings";
 import { watchInbox } from "../connectors/gmail";
 
 /**
- * Optional real-time path: Gmail pushes to a Pub/Sub topic, which calls /api/webhooks/gmail.
- * Without GMAIL_PUBSUB_TOPIC, near-real-time comes from the one-minute cron plus a sync whenever an app opens.
+ * Primary real-time path: Gmail pushes to a Pub/Sub topic, which calls /api/webhooks/gmail.
+ * The watch expires after ~7 days, so the cron re-registers it. Without GMAIL_PUBSUB_TOPIC,
+ * freshness falls back to the cron plus a sync whenever an app opens (set the cron to every minute then).
  */
 export async function ensureWatch(userId: string): Promise<void> {
   const topic = optionalEnv("GMAIL_PUBSUB_TOPIC");

@@ -6,7 +6,11 @@ import { syncUser } from "@/lib/sync";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-/** Runs every minute (vercel.json, or any external scheduler). Authenticated with CRON_SECRET. */
+/**
+ * Safety net, not the main path: renews Gmail watches, runs date alerts and catches missed pushes.
+ * Every 15 minutes is plenty with Pub/Sub (vercel.json, or any external scheduler); use every minute without it.
+ * Authenticated with CRON_SECRET.
+ */
 export const GET = handle(async (req: Request) => {
   const secret = optionalEnv("CRON_SECRET");
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) throw new HttpError(401, "Unauthorized");

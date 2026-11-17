@@ -10,7 +10,7 @@ An agent for brand-deal workflows. It watches your Gmail, checks offers against 
 
 ## How it works
 
-- **Inbox sync.** `/api/sync` runs when the app opens or regains focus; `/api/cron/sync` runs every minute; optional Gmail Pub/Sub push hits `/api/webhooks/gmail`. New threads are classified, offers are compared to your recent deals (rate flag below 85% of your average, exclusivity conflicts), and a notification with a ready plan is created.
+- **Inbox sync.** Gmail pushes new mail through Pub/Sub to `/api/webhooks/gmail` (primary). `/api/sync` also runs when an app opens or regains focus, and `/api/cron/sync` runs every 15 minutes as a safety net: it renews the Gmail watch (it expires after ~7 days), runs date alerts and catches missed pushes. New threads are classified, offers are compared to your recent deals (rate flag below 85% of your average, exclusivity conflicts), and a notification with a ready plan is created.
 - **Date alerts.** "Payment overdue" and "Usage rights ending soon" come from your deals table, a cache of your **source of truth** (Airtable or Sheets). If both are connected and none is chosen, Fluent asks you in a notification.
 - **Approve → job.** Approving claims the notification, then runs its actions in order (Calendar hold, deal row, Gmail draft or send). Failures return it to open with the error; retries skip finished actions. You can edit email drafts before approving.
 - **Small chat.** The bottom bar takes a question (**Answer**, read-only) or a task (**Do it**). Inside a notification, "Reply or refine this task…" edits the draft.
@@ -24,8 +24,9 @@ An agent for brand-deal workflows. It watches your Gmail, checks offers against 
 3. **Airtable / Sheets.** Add them in the Connectors sheet (Airtable token with `data.records:read/write`, `schema.bases:read`; a Sheets tab named `Deals` with a header row).
 4. **Env.** `cp apps/web/.env.example apps/web/.env.local` and fill it in (`openssl rand -base64 32` for `ENCRYPTION_KEY`).
 5. **Run.** `npm install && npm run dev`.
-6. **Deploy.** Vercel with Root Directory `apps/web`. `vercel.json` schedules the minute cron, which needs a Pro plan; on Hobby, call `/api/cron/sync` with `Authorization: Bearer $CRON_SECRET` from an external scheduler.
-7. **Extension.** `FLUENT_API_URL=https://your-app.vercel.app npm run build:extension`, then load `apps/extension/dist` unpacked in `chrome://extensions`.
+6. **Deploy.** Vercel with Root Directory `apps/web`. `vercel.json` schedules the 15-minute cron; Vercel Hobby only allows daily crons, so on Hobby call `/api/cron/sync` with `Authorization: Bearer $CRON_SECRET` from an external scheduler. Without Pub/Sub, run the cron every minute instead.
+7. **Pub/Sub push.** Set `GMAIL_PUBSUB_TOPIC` (`projects/<id>/topics/<name>`) and `GMAIL_PUSH_TOKEN`. Grant `gmail-api-push@system.gserviceaccount.com` the Pub/Sub Publisher role on the topic, and point a push subscription at `<APP_URL>/api/webhooks/gmail?token=<GMAIL_PUSH_TOKEN>`.
+8. **Extension.** `FLUENT_API_URL=https://your-app.vercel.app npm run build:extension`, then load `apps/extension/dist` unpacked in `chrome://extensions`.
 
 ## Tests
 
