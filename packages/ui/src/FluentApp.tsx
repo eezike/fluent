@@ -10,11 +10,15 @@ export type FluentAppProps = {
   /** The extension passes this so Fluent can offer to process the page you're on. */
   getPage?: () => Promise<PageContext | null>;
   topRight?: ReactNode;
+  /** Pick the first item automatically on wide screens. The demo turns this off. */
+  autoSelect?: boolean;
+  /** How often to refresh, in ms. The demo polls faster so changes show up quickly. */
+  pollMs?: { idle: number; busy: number };
 };
 
 const msg = (e: unknown) => (e instanceof Error ? e.message : "Something went wrong");
 
-export function FluentApp({ api, layout, getPage, topRight }: FluentAppProps) {
+export function FluentApp({ api, layout, getPage, topRight, autoSelect = true, pollMs = { idle: 8000, busy: 2500 } }: FluentAppProps) {
   const [tab, setTab] = useState<"active" | "done">("active");
   const [data, setData] = useState<NotificationList | null>(null);
   const [detail, setDetail] = useState<NotificationDTO | null>(null);
@@ -53,9 +57,9 @@ export function FluentApp({ api, layout, getPage, topRight }: FluentAppProps) {
     const t = setInterval(() => {
       refresh();
       if (detail) apiGet<{ notification: NotificationDTO }>(api, `/api/notifications/${detail.id}`).then((r) => setDetail(r.notification)).catch(() => {});
-    }, anyRunning ? 2500 : 8000);
+    }, anyRunning ? pollMs.busy : pollMs.idle);
     return () => clearInterval(t);
-  }, [refresh, anyRunning, detail?.id, api]);
+  }, [refresh, anyRunning, detail?.id, api, pollMs.busy, pollMs.idle]);
 
   // Near-real-time: ask the server to check mail whenever the app opens or comes back into view.
   useEffect(() => {
@@ -99,8 +103,8 @@ export function FluentApp({ api, layout, getPage, topRight }: FluentAppProps) {
 
   // On wide screens the right pane always shows something.
   useEffect(() => {
-    if (layout === "split" && !detail && items.length) setDetail(items[0]);
-  }, [layout, items, detail]);
+    if (autoSelect && layout === "split" && !detail && items.length) setDetail(items[0]);
+  }, [autoSelect, layout, items, detail]);
 
   const patch = useCallback((n: NotificationDTO) => {
     setDetail((d) => (d && d.id === n.id ? n : d));

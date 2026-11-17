@@ -39,3 +39,7 @@ An agent for brand-deal workflows. It watches your Gmail, checks offers against 
 - Only text PDFs are read (up to 3 per thread, 8 MB and 30 pages each). Scanned/image PDFs, Word files and images show under Sources as "not read" so you know to check them. OCR is the next step if you need it.
 - Inter is used; the Ramp reference font is licensed and not embedded.
 - The extension reads Gmail tabs automatically; other tabs need a click on the toolbar icon.
+
+## Demo mode
+
+`/demo` runs the real UI on an in-memory fake API (`packages/ui/src/demo`). No account, no network calls to the Fluent API, no model calls. Guided, free-play and auto-play modes; a "DEMO · Sample data" strip is always visible. The sample brands and creator are fictional.

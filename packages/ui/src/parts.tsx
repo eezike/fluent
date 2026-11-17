@@ -37,7 +37,7 @@ export function Card({ n, selected, ops, busy, onOpen }: { n: NotificationDTO; s
   const isDone = n.status === "done" || n.status === "dismissed";
   const right = isDone ? "" : n.status === "running" ? "now" : ago(n.createdAt) === "now" ? "now" : ago(n.createdAt);
   return (
-    <div className={cx("card")} role="button" tabIndex={0} style={selected ? { borderColor: "#191919", boxShadow: "0 0 0 1px #191919" } : undefined} onClick={open} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(e))}>
+    <div className={cx("card")} data-demo={`card-${n.id}`} role="button" tabIndex={0} style={selected ? { borderColor: "#191919", boxShadow: "0 0 0 1px #191919" } : undefined} onClick={open} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(e))}>
       <div className={cx("in")}>
         <span className={cx("tile")} style={{ color: accent }}><Icon name={icon} color={accent} /></span>
         <div className={cx("cb")}>
@@ -49,7 +49,7 @@ export function Card({ n, selected, ops, busy, onOpen }: { n: NotificationDTO; s
           {n.status === "running" && <div className={cx("row")}><button className={cx("btn", "k")} onClick={onOpen}>View details</button></div>}
           {n.status === "open" && n.primaryLabel && (
             <div className={cx("row")}>
-              <button className={cx("btn", "k")} disabled={busy} onClick={ops.primary}>{n.primaryLabel}</button>
+              <button className={cx("btn", "k")} data-demo="card-primary" disabled={busy} onClick={ops.primary}>{n.primaryLabel}</button>
               {n.secondaryLabel && <button className={cx("btn")} disabled={busy} onClick={ops.secondary}>{n.secondaryLabel}</button>}
             </div>
           )}
@@ -79,7 +79,7 @@ export function AskBar({ value, onChange, onAnswer, onTask, busy }: { value: str
   const [focus, setFocus] = useState(false);
   const expanded = focus || value.length > 0;
   return (
-    <div className={cx("ask", expanded && "f")}>
+    <div className={cx("ask", expanded && "f")} data-demo="ask">
       <div className={cx("in")}>
         <input
           value={value}
@@ -92,7 +92,7 @@ export function AskBar({ value, onChange, onAnswer, onTask, busy }: { value: str
         />
         {expanded && (
           <>
-            <button className={cx("btn")} disabled={busy || !value.trim()} onMouseDown={(e) => e.preventDefault()} onClick={onAnswer}>Answer</button>
+            <button className={cx("btn")} disabled={busy || !value.trim()} data-demo="ask-answer" onMouseDown={(e) => e.preventDefault()} onClick={onAnswer}>Answer</button>
             <button className={cx("btn", "k")} disabled={busy || !value.trim()} onMouseDown={(e) => e.preventDefault()} onClick={onTask}>Do it</button>
           </>
         )}
@@ -109,16 +109,16 @@ export function Reply({ placeholder, onSend, disabled }: { placeholder: string; 
     setV("");
   };
   return (
-    <div className={cx("cmp")}>
+    <div className={cx("cmp")} data-demo="reply">
       <input value={v} aria-label="Reply" placeholder={placeholder} disabled={disabled} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} />
       <button className={cx("go")} aria-label="Send" disabled={disabled || !v.trim()} onClick={send}><Icon name="send" size={15} /></button>
     </div>
   );
 }
 
-function Collapsible({ title, open, onToggle, extra, children }: { title: string; open: boolean; onToggle: () => void; extra?: ReactNode; children?: ReactNode }) {
+function Collapsible({ title, open, onToggle, extra, children, demo }: { demo?: string; title: string; open: boolean; onToggle: () => void; extra?: ReactNode; children?: ReactNode }) {
   return (
-    <div className={cx("sec")}>
+    <div className={cx("sec")} data-demo={demo}>
       <div className={cx("sh")}>
         <button onClick={onToggle} aria-expanded={open}>
           <span style={{ display: "flex", transform: `rotate(${open ? 0 : -90}deg)`, transition: "transform .15s" }}><Icon name="chev" size={12} sw={2.5} color="#A8A8A8" /></span>
@@ -133,7 +133,7 @@ function Collapsible({ title, open, onToggle, extra, children }: { title: string
 
 export function ChangesBlock({ changes, note, open, onToggle, onFull, canExpand }: { changes: Change[]; note?: string; open: boolean; onToggle: () => void; onFull: () => void; canExpand: boolean }) {
   return (
-    <Collapsible title="Changes" open={open} onToggle={onToggle} extra={canExpand ? <button className={cx("v")} onClick={onFull}>View full ↗</button> : undefined}>
+    <Collapsible demo="changes" title="Changes" open={open} onToggle={onToggle} extra={canExpand ? <button className={cx("v")} onClick={onFull}>View full ↗</button> : undefined}>
       <div className={cx("diff")}>
         {changes.map((c, i) => (
           <div key={i} className={cx(c.kind === "old" ? "dr" : "dg")}>
@@ -185,7 +185,7 @@ export function TermsBlock({ terms }: { terms: Term[] }) {
 export function StepsBlock({ steps }: { steps: NotificationDTO["steps"] }) {
   if (!steps.length) return null;
   return (
-    <div className={cx("steps")}>
+    <div className={cx("steps")} data-demo="steps">
       <div className={cx("t")}>Steps</div>
       {steps.map((s, i) => (
         <div key={i} className={cx("st", s.state !== "done" && "td")}>

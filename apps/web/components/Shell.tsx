@@ -47,6 +47,7 @@ export function Shell() {
     return (
       <div className="shell" style={{ display: "flex", alignItems: "center" }}>
         <SignIn
+          onDemo={() => { window.location.href = "/demo"; }}
           onSignIn={async (email, password) => {
             const sb = supabase();
             const r = await sb.auth.signInWithPassword({ email, password });

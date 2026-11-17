@@ -49,10 +49,10 @@ export function Detail(p: DetailProps) {
   return (
     <>
       {p.onBack && (
-        <button className={cx("back")} onClick={p.onBack}><Icon name="left" size={15} />Back</button>
+        <button className={cx("back")} data-demo="back" onClick={p.onBack}><Icon name="left" size={15} />Back</button>
       )}
       <div className={cx("det")}>
-        <div className={cx("dh")}>
+        <div className={cx("dh")} data-demo="detail-head">
           <span className={cx("tile")} style={{ color: accent }}><Icon name={icon} color={accent} /></span>
           <div style={{ flex: 1 }}>
             <div className={cx("dt")}>{n.title}</div>
@@ -62,7 +62,7 @@ export function Detail(p: DetailProps) {
 
         {isAnswer ? (
           <>
-            <div className={cx("ans")}>{n.answer}</div>
+            <div className={cx("ans")} data-demo="answer">{n.answer}</div>
             <div style={{ marginTop: 12 }}><SourcesBlock sources={n.sources} title="Based on" /></div>
             <div className={cx("tip")}>I answered from your data, so nothing changed and there’s no task to track. Want me to act on it?</div>
             <button className={cx("btn", "wide")} disabled={p.busy} onClick={p.onConvert}>Turn this into a task</button>
@@ -101,7 +101,7 @@ export function Detail(p: DetailProps) {
               ))
             ) : (
               <>
-                <button className={cx("btn", "k")} disabled={p.busy} onClick={() => p.onApprove(edits)}>{n.detailPrimaryLabel ?? "Approve"}</button>
+                <button className={cx("btn", "k")} data-demo="approve" disabled={p.busy} onClick={() => p.onApprove(edits)}>{n.detailPrimaryLabel ?? "Approve"}</button>
                 <button className={cx("btn")} disabled={p.busy} onClick={p.onDismiss}>Dismiss</button>
               </>
             )}

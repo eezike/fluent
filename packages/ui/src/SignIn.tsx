@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export function SignIn({ onSignIn, hint }: { onSignIn: (email: string, password: string) => Promise<string | null>; hint?: string }) {
+export function SignIn({ onSignIn, hint, onDemo }: { onSignIn: (email: string, password: string) => Promise<string | null>; hint?: string; onDemo?: () => void }) {
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
@@ -20,6 +20,7 @@ export function SignIn({ onSignIn, hint }: { onSignIn: (email: string, password:
       <div className="fl-field"><label htmlFor="fl-pw">Password</label><input id="fl-pw" type="password" required autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} /></div>
       {msg && <div className="fl-err" role="alert">{msg}</div>}
       <button className="fl-btn fl-k" disabled={busy}>Sign in</button>
+      {onDemo && <button type="button" className="fl-btn" onClick={onDemo}>Try it with sample data</button>}
     </form>
   );
 }
