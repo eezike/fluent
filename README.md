@@ -15,7 +15,8 @@ An agent for brand-deal workflows. It watches your Gmail, checks offers against 
 - **Approve → job.** Approving claims the notification, then runs its actions in order (Calendar hold, deal row, Gmail draft or send). Failures return it to open with the error; retries skip finished actions. You can edit email drafts before approving.
 - **Small chat.** The bottom bar takes a question (**Answer**, read-only) or a task (**Do it**). Inside a notification, "Reply or refine this task…" edits the draft.
 - **Model-agnostic.** `FLUENT_MODEL=<provider>:<model>` (default `anthropic:claude-sonnet-5-5`) plus that provider's key.
-- **Safety.** Email, sheet and page text is untrusted data. The only outbound action is a send from an approved job. Connector tokens are AES-256-GCM encrypted and server-only.
+- **Attachments.** PDF briefs and contracts are downloaded, converted to text in memory (nothing is executed) and passed to the classifier alongside the email. Each file appears under Sources, and Terms found can quote it. The ask bar can read a PDF too.
+- **Safety.** Email, attachment, sheet and page text is untrusted data. The only outbound action is a send from an approved job. Connector tokens are AES-256-GCM encrypted and server-only.
 
 ## Setup
 
@@ -30,11 +31,11 @@ An agent for brand-deal workflows. It watches your Gmail, checks offers against 
 
 ## Tests
 
-`cd apps/web && npx tsx --test test/core.test.ts` covers the pure deal logic (rate flags, exclusivity, counters, date rules, sheet mapping, quote checks).
+`cd apps/web && npx tsx --test test/core.test.ts` covers the pure deal logic (rate flags, exclusivity, counters, date rules, sheet mapping, quote checks, PDF text extraction on fixture files).
 
 ## Not verified / not built
 
 - Never run against live Supabase, Google or Airtable; the LLM classify and draft paths are untested live. Only the pure logic has tests.
-- PDF attachments aren't read.
+- Only text PDFs are read (up to 3 per thread, 8 MB and 30 pages each). Scanned/image PDFs, Word files and images show under Sources as "not read" so you know to check them. OCR is the next step if you need it.
 - Inter is used; the Ramp reference font is licensed and not embedded.
 - The extension reads Gmail tabs automatically; other tabs need a click on the toolbar icon.

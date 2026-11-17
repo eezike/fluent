@@ -14,7 +14,7 @@ async function safe<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
   }
 }
 
-const READ = ["search_gmail", "read_gmail_thread", "read_rate_card", "read_sheet", "airtable_get_schema", "airtable_list_deals"] as const;
+const READ = ["search_gmail", "read_gmail_thread", "read_gmail_attachment", "read_rate_card", "read_sheet", "airtable_get_schema", "airtable_list_deals"] as const;
 
 export function askTools(userId: string, mode: "answer" | "task") {
   const base = buildTools({ userId, conversationId: "" }) as Record<string, any>;
@@ -70,6 +70,7 @@ export function askTools(userId: string, mode: "answer" | "task") {
 export const TOOL_SOURCE: Record<string, { app: "gmail" | "sheets" | "airtable" | "fluent"; name: string; meta: string }> = {
   search_gmail: { app: "gmail", name: "Gmail search", meta: "Gmail" },
   read_gmail_thread: { app: "gmail", name: "Email thread", meta: "Gmail" },
+  read_gmail_attachment: { app: "gmail", name: "Attached PDF", meta: "Gmail attachment" },
   read_rate_card: { app: "sheets", name: "Rate card", meta: "Google Sheets" },
   read_sheet: { app: "sheets", name: "Google Sheet", meta: "Google Sheets" },
   airtable_get_schema: { app: "airtable", name: "Deals table", meta: "Airtable" },

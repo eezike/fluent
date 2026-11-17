@@ -5,6 +5,7 @@ import { notificationExists } from "../notifications";
 import { parseFrom } from "../core/quotes";
 import { classifyEmail } from "./classify";
 import { createOfferNotification, today } from "./offers";
+import { attachmentBlock, readPdfAttachments, type ReadAttachment } from "../attachments";
 
 const MAX_THREADS_PER_RUN = 8;
 
@@ -22,7 +23,14 @@ export async function processThread(userId: string, threadId: string, myEmail: s
     .slice(-3)
     .map((m) => `From: ${m.from}\nDate: ${m.date}\n${m.body}`)
     .join("\n\n---\n\n");
-  const x = await classifyEmail({ from: last.from, subject: msgs[0].subject, text, today: today() });
+  // Briefs and contracts often arrive as PDFs with a one-line email. A failure here must not lose the offer.
+  let files: ReadAttachment[] = [];
+  try {
+    files = await readPdfAttachments(userId, msgs);
+  } catch (e) {
+    console.error("attachments failed", threadId, e instanceof Error ? e.message : e);
+  }
+  const x = await classifyEmail({ from: last.from, subject: msgs[0].subject, text, attachments: attachmentBlock(files), today: today() });
   if ((x.kind !== "brand_offer" && x.kind !== "contract") || x.confidence < 0.6 || !x.brand) return false;
   x.contactEmail ??= from.email;
   x.contactName ??= from.name;
@@ -31,7 +39,10 @@ export async function processThread(userId: string, threadId: string, myEmail: s
     x,
     threadId,
     subject: msgs[0].subject || `${x.brand} partnership`,
-    hasAttachment: msgs.some((m) => m.attachments.length > 0),
+    attachments: [
+      ...files.map((f) => ({ name: f.name, meta: f.readable ? `PDF · ${f.pages} page${f.pages === 1 ? "" : "s"}${f.note ? ` · ${f.note}` : ""}` : `PDF · ${f.note ?? "not read"}. Check it yourself` })),
+      ...msgs.flatMap((m) => m.attachments).filter((a) => !/pdf/i.test(a.mimeType) && !/\.pdf$/i.test(a.name)).slice(0, 3).map((a) => ({ name: a.name, meta: "Attachment · not read" })),
+    ],
   });
   return !!n;
 }

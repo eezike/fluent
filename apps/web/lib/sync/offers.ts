@@ -9,7 +9,7 @@ export const today = () => new Date().toISOString().slice(0, 10);
 /** Builds and stores the notification for one extracted offer. Returns null if this key was already notified. */
 export async function createOfferNotification(
   userId: string,
-  args: { key: string; x: Extraction; threadId?: string; subject: string; hasAttachment: boolean },
+  args: { key: string; x: Extraction; threadId?: string; subject: string; attachments?: { name: string; meta: string }[] },
 ): Promise<NotificationDTO | null> {
   if (await notificationExists(userId, args.key)) return null;
   const [deals, sot] = await Promise.all([recentDeals(userId), resolveSot(userId, { ask: true })]);
@@ -20,6 +20,6 @@ export async function createOfferNotification(
     flagged ? Promise.resolve("") : draftAccept(args.x),
     a.counter ? draftCounter(args.x, a.counter, a.conflict?.brand) : Promise.resolve(""),
   ]);
-  const plan = planOffer({ x: args.x, threadId: args.threadId, subject: args.subject, deals, today: t, sot, acceptBody, counterBody: () => counterBody, hasAttachment: args.hasAttachment });
+  const plan = planOffer({ x: args.x, threadId: args.threadId, subject: args.subject, deals, today: t, sot, acceptBody, counterBody: () => counterBody, attachments: args.attachments });
   return createNotification(userId, args.key, plan, { threadId: args.threadId, agentMessage: args.x.summary });
 }

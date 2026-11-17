@@ -60,6 +60,7 @@ export type Idea = { title: string; detail: string; action: string; prompt: stri
 export const TOOL_LABELS: Record<string, string> = {
   search_gmail: "Searching Gmail",
   read_gmail_thread: "Reading the email thread",
+  read_gmail_attachment: "Reading the attached PDF",
   create_gmail_draft: "Saving a Gmail draft",
   send_gmail_reply: "Preparing to send",
   read_rate_card: "Checking your rate card",

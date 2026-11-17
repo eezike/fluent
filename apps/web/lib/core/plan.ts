@@ -82,7 +82,8 @@ export type OfferInput = {
   sot: Sot;
   acceptBody: string;
   counterBody: (c: { fee: number; postStart: string | null; postEnd: string | null }) => string;
-  hasAttachment: boolean;
+  /** Attachments Fluent looked at. `meta` is shown under Sources, e.g. "PDF · 4 pages". */
+  attachments?: { name: string; meta: string }[];
 };
 
 export function analyze(x: Extraction, deals: DealLite[], today: string) {
@@ -100,7 +101,7 @@ export function planOffer(i: OfferInput): Plan {
   const contact = x.contactName || x.contactEmail || "the sender";
   const { avg, rate, conflict } = analyze(x, i.deals, i.today);
   const baseSources: Source[] = [{ app: "gmail", name: `Offer email from ${contact}`, meta: "Gmail" }];
-  if (i.hasAttachment) baseSources.push({ app: "gmail", name: "Attached brief", meta: "Gmail attachment" });
+  for (const a of i.attachments ?? []) baseSources.push({ app: "gmail", name: a.name, meta: a.meta });
   const terms = x.terms;
 
   if (rate || conflict) {
@@ -132,7 +133,7 @@ export function planOffer(i: OfferInput): Plan {
       flags,
       terms,
       steps: [
-        { label: `Read the ${brand} offer`, state: "done" },
+        { label: `Read the ${brand} offer${i.attachments?.length ? (i.attachments.length === 1 ? " and its attachment" : ` and ${i.attachments.length} attachments`) : ""}`, state: "done" },
         done(rate ? `Compared with your recent deals: ${rate.pctBelow}% below` : "Compared with your recent deals"),
         ...(conflict ? [done(`Found the ${conflict.brand} exclusivity overlap`)] : []),
         done("Drafted a counter" + (conflict ? " with later dates" : "")),
@@ -186,7 +187,7 @@ export function planOffer(i: OfferInput): Plan {
     flags: [],
     terms,
     steps: [
-      done(i.hasAttachment ? "Read the email and attached brief" : "Read the email"),
+      done(i.attachments?.length ? `Read the email and ${i.attachments.length === 1 ? "its attachment" : `${i.attachments.length} attachments`}` : "Read the email"),
       done(`Pulled out ${terms.length} term${terms.length === 1 ? "" : "s"}, each linked to its quote`),
       ...(avg ? [done(`Compared with your last ${avg.n} deals${inRange ? `: ${inRange}` : ""}`)] : []),
       done(`Prepared ${visible} action${visible === 1 ? "" : "s"}`),

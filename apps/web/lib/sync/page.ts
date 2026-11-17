@@ -27,7 +27,7 @@ export async function processPage(userId: string, raw: Page) {
   if (existing) return rowToDTO(existing);
   const x = await classifyEmail({ from: "", subject: p.title, text: p.text, today: today() });
   if (!x.brand || (x.kind !== "brand_offer" && x.kind !== "contract")) throw new HttpError(422, "I couldn't find a brand offer on this page.");
-  const n = await createOfferNotification(userId, { key, x, subject: p.title || `${x.brand} partnership`, hasAttachment: false });
+  const n = await createOfferNotification(userId, { key, x, subject: p.title || `${x.brand} partnership` });
   if (!n) throw new HttpError(409, "Already processed.");
   return n;
 }

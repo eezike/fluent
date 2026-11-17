@@ -14,7 +14,7 @@ const base: Extraction = {
   deliverables: "2 reels", usageRights: "6 months", usageMonths: 6, exclusivity: null, exclusivityCategory: null, exclusivityUntil: null,
   contentDue: null, postStart: "2027-03-10", postEnd: "2027-03-24", paymentTerms: "Net 45", paymentNetDays: 45, summary: "", terms: [],
 };
-const opts = { threadId: "t1", subject: "Partnership", deals, today: "2027-02-01", sot: "airtable" as const, acceptBody: "Yes!", counterBody: () => "Counter", hasAttachment: false };
+const opts = { threadId: "t1", subject: "Partnership", deals, today: "2027-02-01", sot: "airtable" as const, acceptBody: "Yes!", counterBody: () => "Counter" };
 
 test("dates", () => {
   assert.equal(addDays("2027-03-24", 45), "2027-05-08");
@@ -141,4 +141,24 @@ test("edits are limited to email fields", () => {
   assert.equal(out[0].params.body, "new");
   assert.equal(out[0].params.threadId, undefined);
   assert.deepEqual(out[1].params.events, []);
+});
+
+import { readFileSync } from "node:fs";
+import { pdfToText } from "../lib/attachments";
+
+test("pdfToText reads a text PDF and returns nothing for a blank one", async () => {
+  const dir = new URL("./fixtures", import.meta.url).pathname;
+  const a = await pdfToText(new Uint8Array(readFileSync(`${dir}/brief.pdf`)));
+  assert.equal(a.pages, 1);
+  assert.match(a.text, /Fee: \$9,000/);
+  assert.ok(verifyQuote(a.text, "90 days in the athletic footwear category"));
+  const b = await pdfToText(new Uint8Array(readFileSync(`${dir}/blank.pdf`)));
+  assert.equal(b.text.replace(/\s/g, ""), "");
+});
+
+test("attachments appear as sources and in the steps", () => {
+  const x: Extraction = { kind: "brand_offer", brand: "Brooks", contactName: "Sam", contactEmail: "sam@brooks.com", category: "athletic footwear", fee: 9000, currency: "USD", deliverables: "2 Reels", usageRights: null, usageMonths: null, exclusivity: null, exclusivityCategory: null, exclusivityUntil: null, contentDue: null, postStart: "2027-06-01", postEnd: "2027-06-21", paymentTerms: "Net 45", paymentNetDays: 45, summary: "Brooks wants 2 Reels.", terms: [] };
+  const plan = planOffer({ ...opts, x, attachments: [{ name: "brief.pdf", meta: "PDF · 1 page" }] });
+  assert.ok(plan.sources.some((s) => s.name === "brief.pdf" && s.meta === "PDF · 1 page"));
+  assert.ok(plan.steps.some((s) => /(its attachment|1 attachment)/.test(s.label)));
 });

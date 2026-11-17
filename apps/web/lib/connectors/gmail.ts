@@ -53,13 +53,15 @@ function stripHtml(html: string): string {
 type Part = {
   mimeType?: string;
   filename?: string;
-  body?: { data?: string; size?: number };
+  body?: { data?: string; size?: number; attachmentId?: string };
   parts?: Part[];
 };
 
-function collect(part: Part, out: { plain: string[]; html: string[]; attachments: { name: string; mimeType: string; size: number }[] }) {
+export type AttachmentRef = { name: string; mimeType: string; size: number; attachmentId?: string };
+
+function collect(part: Part, out: { plain: string[]; html: string[]; attachments: AttachmentRef[] }) {
   if (part.filename) {
-    out.attachments.push({ name: part.filename, mimeType: part.mimeType ?? "", size: part.body?.size ?? 0 });
+    out.attachments.push({ name: part.filename, mimeType: part.mimeType ?? "", size: part.body?.size ?? 0, attachmentId: part.body?.attachmentId });
   } else if (part.mimeType === "text/plain" && part.body?.data) {
     out.plain.push(decodeB64Url(part.body.data));
   } else if (part.mimeType === "text/html" && part.body?.data) {
@@ -68,19 +70,20 @@ function collect(part: Part, out: { plain: string[]; html: string[]; attachments
   part.parts?.forEach((p) => collect(p, out));
 }
 
-export type ThreadMessage = { messageId: string; from: string; to: string; date: string; subject: string; body: string; attachments: { name: string; mimeType: string; size: number }[] };
+export type ThreadMessage = { gmailId: string; messageId: string; from: string; to: string; date: string; subject: string; body: string; attachments: AttachmentRef[] };
 
 export async function readThread(userId: string, threadId: string): Promise<{ threadId: string; messages: ThreadMessage[] }> {
   const th = await gfetch(userId, `${G}/threads/${threadId}?format=full`);
   let budget = 24000;
   const messages: ThreadMessage[] = (th.messages ?? []).map((m: any): ThreadMessage => {
-    const acc = { plain: [] as string[], html: [] as string[], attachments: [] as { name: string; mimeType: string; size: number }[] };
+    const acc = { plain: [] as string[], html: [] as string[], attachments: [] as AttachmentRef[] };
     collect(m.payload ?? {}, acc);
     let body = acc.plain.join("\n").trim() || stripHtml(acc.html.join("\n"));
     body = body.slice(0, Math.min(7000, Math.max(budget, 500)));
     budget -= body.length;
     const h = m.payload?.headers;
     return {
+      gmailId: m.id as string,
       messageId: header(h, "Message-ID"),
       from: header(h, "From"),
       to: header(h, "To"),
@@ -91,6 +94,12 @@ export async function readThread(userId: string, threadId: string): Promise<{ th
     };
   });
   return { threadId, messages };
+}
+
+/** Raw bytes of one attachment. Gmail returns base64url. */
+export async function getAttachment(userId: string, gmailMessageId: string, attachmentId: string): Promise<Buffer> {
+  const a = await gfetch(userId, `${G}/messages/${gmailMessageId}/attachments/${attachmentId}`);
+  return Buffer.from(String(a.data ?? ""), "base64url");
 }
 
 function encodeSubject(s: string): string {
