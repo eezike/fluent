@@ -8,13 +8,18 @@ export type Settings = {
   gmail_watch_expires_at: string | null;
   last_sync_at: string | null;
   last_import_at: string | null;
+  onboarded_at: string | null;
+  checklist_dismissed: boolean;
+  last_push_at: string | null;
+  paused: boolean;
+  paused_note: string | null;
 };
 
 export async function getSettings(userId: string): Promise<Settings> {
   const { data } = await admin().from("settings").select("*").eq("user_id", userId).maybeSingle();
   if (data) return data as Settings;
   await admin().from("settings").upsert({ user_id: userId }, { onConflict: "user_id" });
-  return { user_id: userId, source_of_truth: null, gmail_email: null, gmail_history_id: null, gmail_watch_expires_at: null, last_sync_at: null, last_import_at: null };
+  return { user_id: userId, source_of_truth: null, gmail_email: null, gmail_history_id: null, gmail_watch_expires_at: null, last_sync_at: null, last_import_at: null, onboarded_at: null, checklist_dismissed: false, last_push_at: null, paused: false, paused_note: null };
 }
 
 export async function updateSettings(userId: string, patch: Partial<Omit<Settings, "user_id">>): Promise<void> {

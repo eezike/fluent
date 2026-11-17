@@ -15,10 +15,12 @@ export function Header({ inProgress, toReview }: { inProgress: number; toReview:
   );
 }
 
-export function Tabs({ tab, active, onTab }: { tab: "active" | "done"; active: number; onTab: (t: "active" | "done") => void }) {
+export type TabId = "active" | "todo" | "done";
+export function Tabs({ tab, active, todo, onTab }: { tab: TabId; active: number; todo: number; onTab: (t: TabId) => void }) {
   return (
     <div className={cx("tabs")} role="tablist" aria-label="Fluent sections">
       <button role="tab" aria-selected={tab === "active"} className={cx("tab", tab === "active" && "on")} onClick={() => onTab("active")}>Active {active}</button>
+      <button role="tab" aria-selected={tab === "todo"} data-demo="tab-todo" className={cx("tab", tab === "todo" && "on")} onClick={() => onTab("todo")}>To do {todo > 0 ? todo : ""}</button>
       <button role="tab" aria-selected={tab === "done"} className={cx("tab", tab === "done" && "on")} onClick={() => onTab("done")}>Done</button>
     </div>
   );

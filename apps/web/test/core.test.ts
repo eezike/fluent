@@ -162,3 +162,19 @@ test("attachments appear as sources and in the steps", () => {
   assert.ok(plan.sources.some((s) => s.name === "brief.pdf" && s.meta === "PDF · 1 page"));
   assert.ok(plan.steps.some((s) => /(its attachment|1 attachment)/.test(s.label)));
 });
+
+import { todoSuggestions } from "../lib/todos";
+test("todo suggestions come from near dates, skip paid and declined, and have stable keys", () => {
+  const d = [
+    { id: "1", brand: "NB", status: "active", post_start: "2027-03-10", payment_due: null, paid_at: null },
+    { id: "2", brand: "Far", status: "active", post_start: "2027-05-10", payment_due: null, paid_at: null },
+    { id: "3", brand: "Tern", status: "active", post_start: null, payment_due: "2027-03-12", paid_at: null },
+    { id: "4", brand: "Paid", status: "paid", post_start: null, payment_due: "2027-03-12", paid_at: "2027-03-01" },
+    { id: "5", brand: "No", status: "declined", post_start: "2027-03-10", payment_due: null, paid_at: null },
+    { id: "6", brand: "Past", status: "active", post_start: "2027-03-01", payment_due: null, paid_at: null },
+  ];
+  const s = todoSuggestions(d, "2027-03-08");
+  assert.deepEqual(s.map((x) => x.key), ["post:1:2027-03-10", "pay:3:2027-03-12"]);
+  assert.match(s[0].title, /Post NB content/);
+  assert.deepEqual(todoSuggestions(d, "2027-03-08").map((x) => x.key), s.map((x) => x.key));
+});

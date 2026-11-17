@@ -63,3 +63,24 @@ test("the fetch wrapper speaks the same shapes as the real API", async () => {
   const act = await f("/api/notifications/demo-tern/act", { method: "POST", body: JSON.stringify({ action: "dismiss" }) });
   assert.equal((await act.json()).notification.status, "dismissed");
 });
+
+test("demo to do list: add, accept a suggestion, hand one to Fluent, check one off", async () => {
+  const s = new DemoStore(0);
+  const f = createDemoFetch(s);
+  const post = (u: string, b: object) => f(u, { method: "POST", body: JSON.stringify(b) }).then((r) => r.json());
+  let l = await (await f("/api/todos")).json();
+  assert.equal(l.open.length, 1);
+  assert.equal(l.suggested.length, 2);
+  await post("/api/todos", { title: "Call Sam" });
+  await post("/api/todos/td-2", { action: "accept" });
+  await post("/api/todos/td-3", { action: "dismiss" });
+  l = await (await f("/api/todos")).json();
+  assert.equal(l.open.length, 3);
+  assert.equal(l.suggested.length, 0);
+  const d = await post("/api/todos/td-1", { action: "delegate" });
+  assert.equal(d.notification.status, "running");
+  assert.equal(d.todo.notificationId, d.notification.id);
+  await post("/api/todos/td-2", { action: "done" });
+  l = await (await f("/api/todos")).json();
+  assert.ok(!l.open.some((t: any) => t.id === "td-2"));
+});

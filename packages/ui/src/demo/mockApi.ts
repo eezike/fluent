@@ -1,4 +1,4 @@
-import type { NotificationCounts, NotificationDTO, NotificationList } from "@fluent/shared";
+import type { NotificationCounts, NotificationDTO, NotificationList, TodoDTO } from "@fluent/shared";
 import { adidas, nb, seedActive, seedDone } from "./data";
 
 type Json = Record<string, unknown>;
@@ -27,8 +27,16 @@ const parseAmount = (msg: string): number | null => {
 const usd = (n: number) => `$${n.toLocaleString("en-US")}`;
 
 /** A tiny in-memory stand-in for the Fluent API, so the demo runs with no account and no network. */
+const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+const seedTodos = (): TodoDTO[] => [
+  { id: "td-1", title: "Send signed Halcyon agreement", source: "user", status: "open", dueDate: day(3), createdAt: new Date().toISOString() },
+  { id: "td-2", title: "Post New Balance content", note: "Posting window opens Mar 10.", source: "agent", status: "suggested", dueDate: day(6), createdAt: new Date().toISOString() },
+  { id: "td-3", title: "Check Tern payment arrived", note: "Payment is overdue by 14 days.", source: "agent", status: "suggested", dueDate: day(1), createdAt: new Date().toISOString() },
+];
+
 export class DemoStore {
   items = new Map<string, NotificationDTO>();
+  todos = new Map<string, TodoDTO>();
   /** Milliseconds each step of a job takes. Zero finishes jobs on the next tick. */
   stepMs: number;
   private timers = new Set<ReturnType<typeof setTimeout>>();
@@ -43,7 +51,9 @@ export class DemoStore {
     this.timers.forEach(clearTimeout);
     this.timers.clear();
     this.items.clear();
+    this.todos.clear();
     [...seedActive(), ...seedDone()].forEach((n) => this.items.set(n.id, n));
+    seedTodos().forEach((t) => this.todos.set(t.id, t));
   }
 
   /** The New Balance offer shows up, as if it had just landed in the inbox. */
@@ -190,6 +200,34 @@ export class DemoStore {
     return ok(n);
   }
 
+  listTodos() {
+    const all = [...this.todos.values()];
+    const byDue = (a: TodoDTO, b: TodoDTO) => (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");
+    return { open: all.filter((t) => t.status === "open").sort(byDue), suggested: all.filter((t) => t.status === "suggested").sort(byDue) };
+  }
+
+  todoAct(id: string, action: string): Result {
+    const t = this.todos.get(id);
+    if (!t) return { status: 404, body: { error: "Not found" } };
+    const set = (patch: Partial<TodoDTO>) => {
+      const n = { ...t, ...patch };
+      this.todos.set(id, n);
+      return n;
+    };
+    switch (action) {
+      case "done": return { status: 200, body: { todo: set({ status: "done" }) } };
+      case "dismiss": return { status: 200, body: { todo: set({ status: "dismissed" }) } };
+      case "accept": return { status: 200, body: { todo: set({ status: "open" }) } };
+      case "reopen": return { status: 200, body: { todo: set({ status: "open" }) } };
+      case "delegate": {
+        const r = this.ask([t.title, t.note].filter(Boolean).join(". "), "task");
+        const n = r.body.notification as unknown as NotificationDTO;
+        return { status: 200, body: { todo: set({ status: "open", notificationId: n.id }), notification: n } as unknown as Json };
+      }
+      default: return { status: 400, body: { error: "Unknown action" } };
+    }
+  }
+
   handle(path: string, method: string, body: Json): Result {
     const url = new URL(path, "http://demo.local");
     const p = url.pathname;
@@ -203,6 +241,15 @@ export class DemoStore {
     if (m && method === "POST") return this.act(m[1], body);
     m = p.match(/^\/api\/notifications\/([^/]+)\/refine$/);
     if (m && method === "POST") return this.refine(m[1], String(body.message ?? ""));
+    if (method === "GET" && p === "/api/todos") return { status: 200, body: this.listTodos() as unknown as Json };
+    if (method === "POST" && p === "/api/todos") {
+      const id = `td-new-${++this.seq}`;
+      const t: TodoDTO = { id, title: String(body.title ?? "").slice(0, 200), dueDate: (body.dueDate as string) || undefined, source: "user", status: "open", createdAt: new Date().toISOString() };
+      this.todos.set(id, t);
+      return { status: 200, body: { todo: t } as unknown as Json };
+    }
+    const tm = p.match(/^\/api\/todos\/([^/]+)$/);
+    if (tm && method === "POST") return this.todoAct(tm[1], String(body.action));
     if (method === "POST" && p === "/api/ask") return this.ask(String(body.message ?? ""), String(body.mode ?? "answer"));
     if (method === "POST" && p === "/api/sync") return { status: 200, body: { created: 0, errors: [], skipped: true } };
     return { status: 404, body: { error: "Not available in the demo" } };

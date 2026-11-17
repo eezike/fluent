@@ -79,3 +79,29 @@ export type RefineRequest = { message: string };
 export type PageSuggestion = { kind: "brand_offer" | "contract"; brand: string; message: string } | null;
 export type SourceOfTruth = "airtable" | "sheets";
 export type SyncResult = { created: number; errors: string[]; skipped?: boolean };
+
+export type TodoDTO = {
+  id: string;
+  title: string;
+  note?: string;
+  dueDate?: string;
+  /** "user" added it; "agent" is something Fluent noticed from the user's deals. */
+  source: "user" | "agent";
+  status: "open" | "suggested" | "done" | "dismissed";
+  /** Set once "Have Fluent do it" turns this into a task. */
+  notificationId?: string;
+  createdAt: string;
+};
+export type TodoList = { open: TodoDTO[]; suggested: TodoDTO[] };
+export type TodoAct = { action: "done" | "reopen" | "dismiss" | "accept" | "delegate" };
+
+/** What the web app needs to decide whether to show onboarding and the setup checklist. */
+export type SetupStatus = {
+  onboarded: boolean;
+  checklistDismissed: boolean;
+  googleConnected: boolean;
+  sourceOfTruth: SourceOfTruth | null;
+  available: { airtable: boolean; sheets: boolean };
+  hasAsked: boolean;
+  hasApproved: boolean;
+};

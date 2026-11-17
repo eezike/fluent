@@ -5,6 +5,8 @@ import { importDeals } from "./source";
 import { runDateChecks } from "./dates";
 import { syncInbox } from "./inbox";
 import { ensureWatch } from "./watch";
+import { suggestTodos } from "../todos";
+import { today } from "./offers";
 import { agentActive } from "../admin/flags";
 
 /** One sync claims the user for a few seconds so a burst of triggers (push + cron + app open) runs once. */
@@ -35,6 +37,7 @@ export async function syncUser(userId: string, opts: { minGapMs?: number } = {})
   await step("deals", () => importDeals(userId));
   await step("inbox", () => syncInbox(userId));
   await step("dates", () => runDateChecks(userId));
+  await step("todos", () => suggestTodos(userId, today()).then(() => 0));
   await step("watch", () => ensureWatch(userId));
   return { created, errors };
 }

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { apiGet, apiSend, type ApiOptions, type NotificationDTO, type NotificationList, type PageContext, type PageSuggestion } from "@fluent/shared";
-import { AskBar, Banner, Card, Header, Tabs } from "./parts";
+import { apiGet, apiSend, type ApiOptions, type NotificationDTO, type NotificationList, type PageContext, type PageSuggestion, type TodoDTO, type TodoList } from "@fluent/shared";
+import { AskBar, Banner, Card, Header, Tabs, type TabId } from "./parts";
+import { TodoView } from "./Todo";
+import { SetupCard, type SetupProps } from "./Setup";
 import { Detail } from "./Detail";
 import { cx, opensDetail } from "./util";
 
@@ -14,12 +16,15 @@ export type FluentAppProps = {
   autoSelect?: boolean;
   /** How often to refresh, in ms. The demo polls faster so changes show up quickly. */
   pollMs?: { idle: number; busy: number };
+  /** Web only: the "finish setting up" card at the top of Active. */
+  setup?: SetupProps | null;
 };
 
 const msg = (e: unknown) => (e instanceof Error ? e.message : "Something went wrong");
 
-export function FluentApp({ api, layout, getPage, topRight, autoSelect = true, pollMs = { idle: 8000, busy: 2500 } }: FluentAppProps) {
-  const [tab, setTab] = useState<"active" | "done">("active");
+export function FluentApp({ api, layout, getPage, topRight, autoSelect = true, pollMs = { idle: 8000, busy: 2500 }, setup }: FluentAppProps) {
+  const [tab, setTab] = useState<TabId>("active");
+  const [todos, setTodos] = useState<TodoList | null>(null);
   const [data, setData] = useState<NotificationList | null>(null);
   const [detail, setDetail] = useState<NotificationDTO | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -41,7 +46,12 @@ export function FluentApp({ api, layout, getPage, topRight, autoSelect = true, p
 
   const refresh = useCallback(async () => {
     try {
-      setData(await apiGet<NotificationList>(api, `/api/notifications?tab=${tab}`));
+      const [list, td] = await Promise.all([
+        apiGet<NotificationList>(api, `/api/notifications?tab=${tab === "done" ? "done" : "active"}`),
+        apiGet<TodoList>(api, "/api/todos").catch(() => null),
+      ]);
+      setData(list);
+      if (td) setTodos(td);
       setErr(null);
     } catch (e) {
       setErr(msg(e));
@@ -103,8 +113,8 @@ export function FluentApp({ api, layout, getPage, topRight, autoSelect = true, p
 
   // On wide screens the right pane always shows something.
   useEffect(() => {
-    if (autoSelect && layout === "split" && !detail && items.length) setDetail(items[0]);
-  }, [autoSelect, layout, items, detail]);
+    if (autoSelect && layout === "split" && tab !== "todo" && !detail && items.length) setDetail(items[0]);
+  }, [autoSelect, layout, items, detail, tab]);
 
   const patch = useCallback((n: NotificationDTO) => {
     setDetail((d) => (d && d.id === n.id ? n : d));
@@ -191,6 +201,30 @@ export function FluentApp({ api, layout, getPage, topRight, autoSelect = true, p
       patch(r.notification);
     });
 
+  const todoAct = (t: TodoDTO, action: string, okMsg?: string) =>
+    guarded(async () => {
+      const r = await apiSend<{ todo: TodoDTO; notification?: NotificationDTO }>(api, `/api/todos/${t.id}`, "POST", { action });
+      if (okMsg) flash(okMsg);
+      if (r.notification) {
+        setTab("active");
+        setDetail(r.notification);
+      }
+      await refresh();
+    }, (m) => flash(m));
+
+  const addTodo = (title: string, dueDate?: string) =>
+    guarded(async () => {
+      await apiSend(api, "/api/todos", "POST", { title, dueDate });
+      await refresh();
+    }, (m) => flash(m));
+
+  const openTask = (id: string) =>
+    guarded(async () => {
+      const r = await apiGet<{ notification: NotificationDTO }>(api, `/api/notifications/${id}`);
+      setTab(r.notification.status === "done" ? "done" : "active");
+      setDetail(r.notification);
+    }, (m) => flash(m));
+
   const showBanner = !!sugg && !dismissedUrls.has(sugg.url) && tab === "active";
   const banner = showBanner ? <Banner message={sugg!.s.message} busy={reading} onDo={process} onDismiss={() => setDismissedUrls((s) => new Set(s).add(sugg!.url))} /> : null;
 
@@ -201,6 +235,7 @@ export function FluentApp({ api, layout, getPage, topRight, autoSelect = true, p
 
   const listBody = (
     <div className={cx("scr")}>
+      {tab === "active" && setup && <SetupCard {...setup} />}
       {banner}
       {err && <div className={cx("err")} role="alert">{err}</div>}
       {data && items.length === 0 && !banner && <div className={cx("hint")}><b>{hint.t}</b>{hint.s}</div>}
@@ -212,7 +247,7 @@ export function FluentApp({ api, layout, getPage, topRight, autoSelect = true, p
   );
 
   const header = <Header inProgress={counts.inProgress} toReview={counts.toReview} />;
-  const tabs = <Tabs tab={tab} active={counts.active} onTab={(t) => { setTab(t); setDetail(null); }} />;
+  const tabs = <Tabs tab={tab} active={counts.active} todo={todos?.open.length ?? 0} onTab={(t) => { setTab(t); setDetail(null); }} />;
   const toastEl = toast ? <div className={cx("toast")} role="status">{toast}</div> : null;
 
   const detailEl = detail ? (
@@ -229,6 +264,22 @@ export function FluentApp({ api, layout, getPage, topRight, autoSelect = true, p
     />
   ) : null;
 
+  const todoBody = (
+    <TodoView
+      open={todos?.open ?? []}
+      suggested={todos?.suggested ?? []}
+      loaded={!!todos}
+      busy={busy}
+      onAdd={addTodo}
+      onDone={(t) => todoAct(t, "done", "Done. Nice.")}
+      onAccept={(t) => todoAct(t, "accept", "Added to your list.")}
+      onNotNow={(t) => todoAct(t, "dismiss")}
+      onDelegate={(t) => todoAct(t, "delegate", "Fluent is on it.")}
+      onOpenTask={openTask}
+    />
+  );
+  const body = tab === "todo" ? todoBody : listBody;
+
   const composer = tab === "active" ? <AskBar value={ask} onChange={setAsk} busy={busy} onAnswer={() => submitAsk("answer")} onTask={() => submitAsk("task")} /> : null;
 
   if (layout === "panel") {
@@ -237,7 +288,7 @@ export function FluentApp({ api, layout, getPage, topRight, autoSelect = true, p
         <div className={cx("pop")} style={{ display: "flex", flexDirection: "column" }}>
           {header}
           {tabs}
-          {detailEl ? <div className={cx("body")}>{detailEl}</div> : <div className={cx("body")}>{listBody}{composer}</div>}
+          {detailEl ? <div className={cx("body")}>{detailEl}</div> : <div className={cx("body")}>{body}{composer}</div>}
           {toastEl}
         </div>
       </div>
@@ -250,7 +301,7 @@ export function FluentApp({ api, layout, getPage, topRight, autoSelect = true, p
         <div className={cx("pop")} style={{ display: "flex", flexDirection: "column" }}>
           {header}
           {tabs}
-          <div className={cx("body")}>{listBody}{composer}</div>
+          <div className={cx("body")}>{body}{composer}</div>
         </div>
         <div className={cx("pane")}>
           <div className={cx("topbar")}>{topRight}</div>
