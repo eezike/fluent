@@ -1,0 +1,11 @@
+{
+  "name": "fluent",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "npm run dev -w @fluent/web",
+    "build": "npm run build -w @fluent/web",
+    "typecheck": "npm run typecheck -w @fluent/web && npm run typecheck -w @fluent/extension",
+    "build:extension": "npm run build -w @fluent/extension"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Fluent",
+  "version": "0.1.0",
+  "description": "Chat with Fluent about the brand deal on the page you're looking at.",
+  "permissions": ["sidePanel", "activeTab", "scripting", "storage"],
+  "background": { "service_worker": "background.js" },
+  "side_panel": { "default_path": "panel.html" },
+  "action": { "default_title": "Open Fluent" },
+  "icons": { "192": "icon-192.png", "512": "icon-512.png" }
+}
