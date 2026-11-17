@@ -21,7 +21,7 @@ export async function runDateChecks(userId: string): Promise<number> {
     const late = daysBetween(d.payment_due, t);
     const key = `overdue:${d.id}:${Math.min(3, Math.floor(late / 14))}`; // nudge again every two weeks, at most three times
     if (await notificationExists(userId, key)) continue;
-    const body = await draftFollowUp(d.brand, null, d.fee, d.currency, d.payment_due, late);
+    const body = await draftFollowUp(d.brand, null, d.fee, d.currency, d.payment_due, late, userId);
     if (await createNotification(userId, key, planOverdue(toDue(d), t, sot, body), { threadId: d.thread_id, agentMessage: `${d.brand} is ${late} days past due. ${d.contact_email ? "Here's a follow-up. Approve to send, or tell me what to change." : "Add a contact email and I can draft the follow-up."}` })) created++;
   }
 
@@ -29,7 +29,7 @@ export async function runDateChecks(userId: string): Promise<number> {
   for (const d of ending ?? []) {
     const key = `usage:${d.id}`;
     if (await notificationExists(userId, key)) continue;
-    const body = await draftRenewal(d.brand, null, d.usage_rights_end);
+    const body = await draftRenewal(d.brand, null, d.usage_rights_end, userId);
     if (await createNotification(userId, key, planUsageEnding(toDue(d), t, sot, body), { threadId: d.thread_id })) created++;
   }
 

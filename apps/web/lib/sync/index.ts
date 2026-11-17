@@ -5,6 +5,7 @@ import { importDeals } from "./source";
 import { runDateChecks } from "./dates";
 import { syncInbox } from "./inbox";
 import { ensureWatch } from "./watch";
+import { agentActive } from "../admin/flags";
 
 /** One sync claims the user for a few seconds so a burst of triggers (push + cron + app open) runs once. */
 async function claim(userId: string, minGapMs: number): Promise<boolean> {
@@ -20,6 +21,7 @@ async function claim(userId: string, minGapMs: number): Promise<boolean> {
 }
 
 export async function syncUser(userId: string, opts: { minGapMs?: number } = {}): Promise<SyncResult> {
+  if (!(await agentActive(userId))) return { created: 0, errors: [], skipped: true };
   if (!(await claim(userId, opts.minGapMs ?? 15_000))) return { created: 0, errors: [], skipped: true };
   const errors: string[] = [];
   let created = 0;

@@ -30,7 +30,7 @@ export async function processThread(userId: string, threadId: string, myEmail: s
   } catch (e) {
     console.error("attachments failed", threadId, e instanceof Error ? e.message : e);
   }
-  const x = await classifyEmail({ from: last.from, subject: msgs[0].subject, text, attachments: attachmentBlock(files), today: today() });
+  const x = await classifyEmail({ from: last.from, subject: msgs[0].subject, text, attachments: attachmentBlock(files), today: today() }, { userId });
   if ((x.kind !== "brand_offer" && x.kind !== "contract") || x.confidence < 0.6 || !x.brand) return false;
   x.contactEmail ??= from.email;
   x.contactName ??= from.name;

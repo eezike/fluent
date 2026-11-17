@@ -17,8 +17,8 @@ export async function createOfferNotification(
   const a = analyze(args.x, deals, t);
   const flagged = !!(a.rate || a.conflict);
   const [acceptBody, counterBody] = await Promise.all([
-    flagged ? Promise.resolve("") : draftAccept(args.x),
-    a.counter ? draftCounter(args.x, a.counter, a.conflict?.brand) : Promise.resolve(""),
+    flagged ? Promise.resolve("") : draftAccept(args.x, userId),
+    a.counter ? draftCounter(args.x, a.counter, a.conflict?.brand, userId) : Promise.resolve(""),
   ]);
   const plan = planOffer({ x: args.x, threadId: args.threadId, subject: args.subject, deals, today: t, sot, acceptBody, counterBody: () => counterBody, attachments: args.attachments });
   return createNotification(userId, args.key, plan, { threadId: args.threadId, agentMessage: args.x.summary });

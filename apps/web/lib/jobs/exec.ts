@@ -8,6 +8,7 @@ import { createDeal, getSchema } from "../connectors/airtable";
 import { dealToAirtableFields, dealToSheetRow, type DealFields } from "../core/mapping";
 import type { Exec } from "../core/runner";
 import { DEALS_TAB, sotChoices } from "../sync/source";
+import { getFlags } from "../admin/flags";
 
 type Ctx = { userId: string; notificationId: string; threadId: string | null };
 
@@ -17,6 +18,10 @@ export function executor({ userId, notificationId, threadId }: Ctx): Exec {
   let dealId: string | null = null;
 
   return async (a: PlannedAction) => {
+    const flags = await getFlags(true);
+    // Admin controls. Sending is the one irreversible step, so it has its own switch.
+    if (a.kind === "gmail.send" && flags.pause_sending) throw new Error("Sending is paused right now. Your draft is saved; try again later.");
+    if (flags.dry_run_all) return { label: `Dry run: ${a.summary} (nothing was changed)` };
     switch (a.kind) {
       case "deal.upsert": {
         const key = `fluent:${threadId ?? notificationId}`;

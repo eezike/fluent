@@ -43,3 +43,20 @@ An agent for brand-deal workflows. It watches your Gmail, checks offers against 
 ## Demo mode
 
 `/demo` runs the real UI on an in-memory fake API (`packages/ui/src/demo`). No account, no network calls to the Fluent API, no model calls. Guided, free-play and auto-play modes; a "DEMO · Sample data" strip is always visible. The sample brands and creator are fictional.
+
+## Admin portal
+
+Web only, at `/admin`. Access comes from the `admins` table, not from a token claim. After running `supabase/migrations/0003_admin.sql`, make yourself the first admin (SQL editor, once):
+
+```sql
+insert into public.admins (user_id, email) select id, email from auth.users where email = 'you@example.com';
+```
+
+Then add teammates from Admin > Team (they must have signed in once).
+
+- **Runs**: every model call (classify, draft, ask, refine) with prompt version, model, tokens, latency and cost. Cost needs prices in Controls; Fluent doesn't guess them.
+- **Prompts**: five prompts ship in `lib/admin/defaults.ts`. Saving creates a version and changes nothing for users. Roll out to admins only or a percentage of users, then make live. Going beyond admins needs the eval gate. Rollback is one click. All changes are audited.
+- **Evals**: suites of cases with exact checks (exact, ignore case, number, date, contains, not contains, verified in input). No model judges anything. Plan cases run the real planner with no model. Run 3× to find flaky cases. "Turn into eval case" on a run redacts emails, phones, links and names first.
+- **Controls**: pause sending, pause the agent, dry run for everyone, per-user pause, and auto-pause when live errors pile up.
+
+Not built yet: Feedback, Users and sync health, Cost, Reprocess and Data pages.
