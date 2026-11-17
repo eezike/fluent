@@ -90,3 +90,33 @@ test("starter suites are well-formed", () => {
     if (c.kind === "classify") assert.ok((c.input as any).text && (c.input as any).today, c.name);
   }
 });
+
+import { syncHealth } from "../lib/admin/health";
+import { draftDiffs } from "../lib/admin/feedback";
+import { changedFields } from "../lib/admin/reprocess";
+
+test("sync health reads watch expiry, staleness and pauses", () => {
+  const now = Date.parse("2027-03-01T12:00:00Z");
+  const h = (s: any, o: any = {}) => syncHealth(s, { google: true, pushConfigured: true, now, ...o });
+  const fresh = { gmail_watch_expires_at: "2027-03-05T00:00:00Z", last_sync_at: "2027-03-01T11:50:00Z" };
+  assert.equal(h(fresh).level, "ok");
+  assert.equal(h({ ...fresh, gmail_watch_expires_at: "2027-03-01T20:00:00Z" }).label, "Push watch expiring");
+  assert.equal(h({ ...fresh, gmail_watch_expires_at: "2027-02-28T00:00:00Z" }).level, "bad");
+  assert.equal(h({ ...fresh, last_sync_at: "2027-03-01T08:00:00Z" }).label, "Sync is stale");
+  assert.equal(h({ ...fresh, paused: true }).label, "Paused");
+  assert.equal(h(fresh, { google: false }).level, "idle");
+  assert.equal(h({ last_sync_at: fresh.last_sync_at }, { pushConfigured: false }).level, "ok");
+});
+test("draft diffs only report subject and body that really changed", () => {
+  const actions = [{ id: "a1", kind: "gmail.draft", params: { to: "x@y.com", subject: "Re: Deal", body: "Hello\nBest," } }];
+  assert.deepEqual(draftDiffs(actions, { a1: { body: "Hello\nBest," } }), []);
+  const d = draftDiffs(actions, { a1: { body: "Hi there\nBest," }, zz: { body: "x" } });
+  assert.equal(d.length, 1);
+  assert.equal(d[0].field, "body");
+  assert.equal(d[0].before, "Hello\nBest,");
+});
+test("reprocess compares only the fields that matter", () => {
+  assert.deepEqual(changedFields({ kind: "brand_offer", fee: 14000, summary: "a" }, { kind: "brand_offer", fee: 14000, summary: "b" }), []);
+  assert.deepEqual(changedFields({ kind: "brand_offer", fee: 14000 }, { kind: "other", fee: null }), ["kind", "fee"]);
+  assert.deepEqual(changedFields({ postStart: undefined }, { postStart: null }), []);
+});

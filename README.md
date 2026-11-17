@@ -59,4 +59,10 @@ Then add teammates from Admin > Team (they must have signed in once).
 - **Evals**: suites of cases with exact checks (exact, ignore case, number, date, contains, not contains, verified in input). No model judges anything. Plan cases run the real planner with no model. Run 3× to find flaky cases. "Turn into eval case" on a run redacts emails, phones, links and names first.
 - **Controls**: pause sending, pause the agent, dry run for everyone, per-user pause, and auto-pause when live errors pile up.
 
-Not built yet: Feedback, Users and sync health, Cost, Reprocess and Data pages.
+Also in the portal (needs `supabase/migrations/0004_todos_onboarding_feedback.sql` too):
+
+- **Feedback**: approve, dismiss and edit rates per card type, draft diffs, and a link from each card to the run that made it (turn it into an eval case there).
+- **Users**: sync health per person (watch expiry, last sync, last push, errors), with Sync now, Renew watch and Pause. "View" is read-only, shows titles and statuses only, and is audit-logged.
+- **Reprocess**: re-read past emails with another prompt or model and see which fields would change. Always a dry run.
+- **Data**: preview how an extraction is saved to Airtable and Sheets, using the real mapping code. Writes nothing.
+- **Cost**: spend by day, model, kind and prompt, plus a daily budget in Controls that pauses the agent when live spend passes it. Cost needs model prices set in Controls.

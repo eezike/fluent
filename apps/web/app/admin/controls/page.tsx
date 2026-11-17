@@ -15,11 +15,13 @@ export default function Controls() {
   const [note, setNote] = useState("");
   const [auto, setAuto] = useState(0);
   const [gate, setGate] = useState(90);
+  const [budget, setBudget] = useState(0);
   useEffect(() => {
     if (data) {
       setPrices(JSON.stringify(data.flags.model_prices, null, 2));
       setAuto(data.flags.auto_pause_errors);
       setGate(Math.round(data.flags.promote_gate * 100));
+      setBudget(data.flags.daily_budget_usd ?? 0);
     }
   }, [data]);
   const put = async (patch: Record<string, unknown>) => {
@@ -62,6 +64,10 @@ export default function Controls() {
           <div className="ad-row"><input className="ad-in" type="number" min={0} max={100} style={{ width: 90 }} value={gate} onChange={(e) => setGate(Number(e.target.value))} />%<Btn onClick={() => put({ promote_gate: gate / 100 })}>Save</Btn></div>
         </Card>
       </div>
+      <Card title="Daily budget">
+        <p className="ad-mut" style={{ marginTop: 0 }}>Pause the agent for the rest of the day if live spend passes this many dollars. Needs model prices below, since cost is unknown without them. 0 means no limit.</p>
+        <div className="ad-row">$<input className="ad-in" type="number" min={0} style={{ width: 110 }} value={budget} onChange={(e) => setBudget(Number(e.target.value))} /><Btn onClick={() => put({ daily_budget_usd: budget })}>Save</Btn></div>
+      </Card>
       <Card title="Pause one user">
         <div className="ad-row"><input className="ad-in" style={{ width: 260 }} placeholder="their@email.com" value={email} onChange={(e) => setEmail(e.target.value)} /><input className="ad-in" style={{ width: 260 }} placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} /><Btn kind="k" disabled={!email.trim()} onClick={() => userPause(email, true)}>Pause</Btn></div>
         {(paused.data?.paused ?? []).length > 0 && (

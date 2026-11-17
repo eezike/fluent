@@ -7,6 +7,7 @@ import { completeWithoutActions, runJob, startJob } from "@/lib/jobs/run";
 import { chooseSot, importDeals } from "@/lib/sync/source";
 import { runDateChecks } from "@/lib/sync/dates";
 import { runTask, startTask } from "@/lib/ask";
+import { recordFeedback } from "@/lib/admin/feedback";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -24,18 +25,22 @@ export const POST = handle(async (req: Request, ctx: { params: Promise<{ id: str
       if (!(row.proposed?.actions ?? []).length) {
         if (row.status !== "open") throw new HttpError(409, "This has already been handled.");
         await completeWithoutActions(user.id, id);
+        after(() => recordFeedback(user.id, row, "approved"));
         return json({ notification: rowToDTO(await getRow(user.id, id)) });
       }
       const { jobId, notification } = await startJob(user.id, id, body.edits);
       after(() => runJob(user.id, jobId));
+      after(() => recordFeedback(user.id, row, "approved", { edits: body.edits }));
       return json({ notification: rowToDTO(notification) });
     }
     case "dismiss": {
       if (row.status !== "open") throw new HttpError(409, "This has already been handled.");
+      after(() => recordFeedback(user.id, row, "dismissed"));
       return json({ notification: rowToDTO(await setStatus(user.id, id, "dismissed", { proposed: { ...row.proposed, resultTag: "Dismissed" } })) });
     }
     case "snooze": {
       const until = new Date(Date.now() + 24 * 3600_000).toISOString();
+      after(() => recordFeedback(user.id, row, "snoozed"));
       return json({ notification: rowToDTO(await setStatus(user.id, id, "open", { snoozed_until: until })) });
     }
     case "answer": {

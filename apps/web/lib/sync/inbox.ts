@@ -30,7 +30,8 @@ export async function processThread(userId: string, threadId: string, myEmail: s
   } catch (e) {
     console.error("attachments failed", threadId, e instanceof Error ? e.message : e);
   }
-  const x = await classifyEmail({ from: last.from, subject: msgs[0].subject, text, attachments: attachmentBlock(files), today: today() }, { userId });
+  let runId: string | null = null;
+  const x = await classifyEmail({ from: last.from, subject: msgs[0].subject, text, attachments: attachmentBlock(files), today: today() }, { userId, report: (r) => (runId = r.runId) });
   if ((x.kind !== "brand_offer" && x.kind !== "contract") || x.confidence < 0.6 || !x.brand) return false;
   x.contactEmail ??= from.email;
   x.contactName ??= from.name;
@@ -38,6 +39,7 @@ export async function processThread(userId: string, threadId: string, myEmail: s
     key,
     x,
     threadId,
+    runId,
     subject: msgs[0].subject || `${x.brand} partnership`,
     attachments: [
       ...files.map((f) => ({ name: f.name, meta: f.readable ? `PDF · ${f.pages} page${f.pages === 1 ? "" : "s"}${f.note ? ` · ${f.note}` : ""}` : `PDF · ${f.note ?? "not read"}. Check it yourself` })),

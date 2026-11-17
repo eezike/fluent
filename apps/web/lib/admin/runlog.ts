@@ -44,6 +44,7 @@ export async function logRun(r: RunRecord): Promise<{ id: string | null; costUsd
       .select("id")
       .single();
     if (r.error && (r.source ?? "live") === "live") void maybeAutoPause(flags.auto_pause_errors);
+    if (cost != null && (r.source ?? "live") === "live") void maybeBudgetPause(flags.daily_budget_usd);
     return { id: (data?.id as string) ?? null, costUsd: cost };
   } catch (e) {
     console.error("run log failed", e instanceof Error ? e.message : e);
@@ -63,3 +64,16 @@ async function maybeAutoPause(threshold: number) {
 }
 
 export const modelId = () => process.env.FLUENT_MODEL || "anthropic:claude-sonnet-5-5";
+
+/** Stops the agent for the rest of the day's spending if live cost passes the daily budget. Off when the budget is 0. */
+async function maybeBudgetPause(budget: number) {
+  if (!budget) return;
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  const { data } = await admin().from("agent_runs").select("cost_usd").eq("source", "live").gte("created_at", start.toISOString()).limit(20000);
+  const spent = (data ?? []).reduce((a, x) => a + Number(x.cost_usd ?? 0), 0);
+  if (spent >= budget && !(await getFlags(true)).pause_agent) {
+    await setFlag("pause_agent", true);
+    await audit(null, "budget_pause", "pause_agent", { spentUsd: Number(spent.toFixed(2)), budgetUsd: budget });
+  }
+}

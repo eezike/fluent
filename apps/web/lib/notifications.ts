@@ -47,7 +47,7 @@ export async function createNotification(
   userId: string,
   dedupeKey: string,
   plan: Plan,
-  extra: { threadId?: string | null; agentMessage?: string } = {},
+  extra: { threadId?: string | null; agentMessage?: string; runId?: string | null } = {},
 ): Promise<NotificationDTO | null> {
   const { data, error } = await admin()
     .from("notifications")
@@ -70,6 +70,7 @@ export async function createNotification(
         actions: plan.actions,
         changes: plan.changes,
         changeNote: plan.changeNote,
+        ...(extra.runId ? { runId: extra.runId } : {}),
       },
       thread: extra.agentMessage ? [{ role: "agent", text: extra.agentMessage }] : [],
       thread_id: extra.threadId ?? null,

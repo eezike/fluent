@@ -2,8 +2,8 @@ import { HttpError } from "../http";
 import { admin } from "../supabase-admin";
 import type { Prices } from "./cost";
 
-export type Flags = { pause_sending: boolean; pause_agent: boolean; dry_run_all: boolean; auto_pause_errors: number; promote_gate: number; model_prices: Prices };
-export const FLAG_DEFAULTS: Flags = { pause_sending: false, pause_agent: false, dry_run_all: false, auto_pause_errors: 0, promote_gate: 0.9, model_prices: {} };
+export type Flags = { pause_sending: boolean; pause_agent: boolean; dry_run_all: boolean; auto_pause_errors: number; promote_gate: number; model_prices: Prices; daily_budget_usd: number };
+export const FLAG_DEFAULTS: Flags = { pause_sending: false, pause_agent: false, dry_run_all: false, auto_pause_errors: 0, promote_gate: 0.9, model_prices: {}, daily_budget_usd: 0 };
 
 let cache: { at: number; v: Flags } | null = null;
 

@@ -23,7 +23,10 @@ export const POST = handle(async (req: Request) => {
   }
   if (email) {
     const { data } = await admin().from("settings").select("user_id").eq("gmail_email", email);
-    for (const r of data ?? []) after(() => syncUser(r.user_id as string, { minGapMs: 3_000 }));
+    for (const r of data ?? []) {
+      await admin().from("settings").update({ last_push_at: new Date().toISOString() }).eq("user_id", r.user_id);
+      after(() => syncUser(r.user_id as string, { minGapMs: 3_000 }));
+    }
   }
   return json({ ok: true });
 });

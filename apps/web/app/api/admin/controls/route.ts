@@ -19,6 +19,7 @@ export const PUT = handle(async (req: Request) => {
     const v = b[k] as unknown;
     if (typeof FLAG_DEFAULTS[k] === "boolean" && typeof v !== "boolean") throw new HttpError(400, `${k} must be on or off`);
     if (k === "auto_pause_errors" && !(Number.isInteger(v) && (v as number) >= 0 && (v as number) <= 1000)) throw new HttpError(400, "Auto-pause needs a whole number from 0 to 1000");
+    if (k === "daily_budget_usd" && !(typeof v === "number" && v >= 0 && v <= 100000)) throw new HttpError(400, "The budget is a dollar amount, or 0 for no limit");
     if (k === "promote_gate" && !(typeof v === "number" && v >= 0 && v <= 1)) throw new HttpError(400, "The gate is a number from 0 to 1");
     if (k === "model_prices" && (typeof v !== "object" || v === null || Object.values(v as object).some((p: any) => typeof p?.in !== "number" || typeof p?.out !== "number"))) throw new HttpError(400, "Prices look like { \"model\": { \"in\": 3, \"out\": 15 } } per million tokens");
     await setFlag(k, v as never, me.id);
