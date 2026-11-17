@@ -1,13 +1,24 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "module": "esnext",
     "moduleResolution": "bundler",
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "types": ["chrome"]
+    "types": [
+      "chrome"
+    ],
+    "jsx": "react-jsx"
   },
-  "include": ["src/**/*.ts", "globals.d.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "globals.d.ts"
+  ]
 }

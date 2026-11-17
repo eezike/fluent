@@ -1,3 +1,3 @@
 export * from "./protocol";
 export * from "./client";
-export * from "./markdown";
+export * from "./notifications";

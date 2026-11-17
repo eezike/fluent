@@ -28,10 +28,12 @@ rmSync(resolve(here, "dist"), { recursive: true, force: true });
 mkdirSync(resolve(here, "dist"), { recursive: true });
 
 await build({
-  entryPoints: { panel: resolve(here, "src/panel.ts"), background: resolve(here, "src/background.ts") },
+  entryPoints: { panel: resolve(here, "src/panel.tsx"), background: resolve(here, "src/background.ts") },
   outdir: resolve(here, "dist"),
   bundle: true,
   format: "iife",
+  jsx: "automatic",
+  loader: { ".css": "css" },
   target: "chrome120",
   minify: false,
   define: {
@@ -41,6 +43,6 @@ await build({
   },
 });
 
-for (const f of ["manifest.json", "panel.html", "panel.css"]) cpSync(resolve(here, f), resolve(here, "dist", f));
+for (const f of ["manifest.json", "panel.html"]) cpSync(resolve(here, f), resolve(here, "dist", f));
 for (const f of ["icon-192.png", "icon-512.png"]) cpSync(resolve(here, "../web/public", f), resolve(here, "dist", f));
 console.log(`Built extension → apps/extension/dist (API: ${apiUrl})`);

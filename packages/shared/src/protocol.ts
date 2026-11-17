@@ -51,7 +51,7 @@ export type UiItem =
 export type ConversationSummary = { id: string; title: string; updated_at: string };
 
 export type ConnectorStatus = {
-  google: { connected: boolean; email?: string; rateCardSheetId?: string; rateCardRange?: string };
+  google: { connected: boolean; email?: string; rateCardSheetId?: string; rateCardRange?: string; dealsSheetId?: string };
   airtable: { connected: boolean; baseId?: string; table?: string };
 };
 

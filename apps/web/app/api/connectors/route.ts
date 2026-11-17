@@ -15,6 +15,7 @@ export const GET = handle(async (req: Request) => {
       email: g?.meta.email as string | undefined,
       rateCardSheetId: g?.meta.rateCardSheetId as string | undefined,
       rateCardRange: g?.meta.rateCardRange as string | undefined,
+      dealsSheetId: g?.meta.dealsSheetId as string | undefined,
     },
     airtable: { connected: !!a, baseId: a?.meta.baseId as string | undefined, table: a?.meta.table as string | undefined },
   };

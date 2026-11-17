@@ -66,3 +66,18 @@ export async function updateDeal(userId: string, recordId: string, fields: Recor
 export async function verifyAirtable(token: string, baseId: string, table: string) {
   await af(token, `${API}/${baseId}/${encodeURIComponent(table)}?maxRecords=1`);
 }
+
+export async function listAllRecords(userId: string, max = 300) {
+  const { token, baseId, table } = await creds(userId);
+  const out: { id: string; fields: Record<string, unknown> }[] = [];
+  let offset: string | undefined;
+  while (out.length < max) {
+    const params = new URLSearchParams({ pageSize: "100" });
+    if (offset) params.set("offset", offset);
+    const j = await af(token, `${API}/${baseId}/${encodeURIComponent(table)}?${params}`);
+    for (const r of j.records as any[]) out.push({ id: r.id, fields: r.fields });
+    offset = j.offset;
+    if (!offset) break;
+  }
+  return out;
+}

@@ -68,10 +68,12 @@ function collect(part: Part, out: { plain: string[]; html: string[]; attachments
   part.parts?.forEach((p) => collect(p, out));
 }
 
-export async function readThread(userId: string, threadId: string) {
+export type ThreadMessage = { messageId: string; from: string; to: string; date: string; subject: string; body: string; attachments: { name: string; mimeType: string; size: number }[] };
+
+export async function readThread(userId: string, threadId: string): Promise<{ threadId: string; messages: ThreadMessage[] }> {
   const th = await gfetch(userId, `${G}/threads/${threadId}?format=full`);
   let budget = 24000;
-  const messages = (th.messages ?? []).map((m: any) => {
+  const messages: ThreadMessage[] = (th.messages ?? []).map((m: any): ThreadMessage => {
     const acc = { plain: [] as string[], html: [] as string[], attachments: [] as { name: string; mimeType: string; size: number }[] };
     collect(m.payload ?? {}, acc);
     let body = acc.plain.join("\n").trim() || stripHtml(acc.html.join("\n"));
@@ -138,4 +140,48 @@ export async function sendMessage(
     body: JSON.stringify({ raw, ...(input.threadId ? { threadId: input.threadId } : {}) }),
   });
   return { messageId: m.id as string };
+}
+
+export async function getProfile(userId: string): Promise<{ emailAddress: string; historyId: string }> {
+  return gfetch(userId, `${G}/profile`);
+}
+
+const SKIP_LABELS = new Set(["SENT", "DRAFT", "CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL", "CATEGORY_FORUMS", "SPAM", "TRASH"]);
+
+/** Threads that received a new inbox message since historyId. `reset` means Gmail no longer has that history. */
+export async function newInboxThreads(
+  userId: string,
+  startHistoryId: string,
+): Promise<{ threadIds: string[]; historyId: string; reset?: boolean }> {
+  const ids = new Set<string>();
+  let pageToken: string | undefined;
+  let historyId = startHistoryId;
+  try {
+    for (let page = 0; page < 5; page++) {
+      const params = new URLSearchParams({ startHistoryId, historyTypes: "messageAdded", labelId: "INBOX", maxResults: "100" });
+      if (pageToken) params.set("pageToken", pageToken);
+      const r = await gfetch(userId, `${G}/history?${params}`);
+      historyId = r.historyId ?? historyId;
+      for (const h of r.history ?? [])
+        for (const m of h.messagesAdded ?? []) {
+          const labels: string[] = m.message?.labelIds ?? [];
+          if (labels.some((l) => SKIP_LABELS.has(l))) continue;
+          if (m.message?.threadId) ids.add(m.message.threadId);
+        }
+      pageToken = r.nextPageToken;
+      if (!pageToken) break;
+    }
+  } catch (e) {
+    if (e instanceof Error && /not found|404/i.test(e.message)) {
+      const p = await getProfile(userId);
+      return { threadIds: [], historyId: p.historyId, reset: true };
+    }
+    throw e;
+  }
+  return { threadIds: [...ids], historyId };
+}
+
+export async function watchInbox(userId: string, topicName: string): Promise<{ historyId: string; expiration: number }> {
+  const r = await gfetch(userId, `${G}/watch`, { method: "POST", body: JSON.stringify({ topicName, labelIds: ["INBOX"], labelFilterBehavior: "INCLUDE" }) });
+  return { historyId: r.historyId, expiration: Number(r.expiration) };
 }

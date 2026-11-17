@@ -16,6 +16,7 @@ export const PUT = handle(async (req: Request) => {
   const body = await req.json();
   const patch: Record<string, unknown> = {};
   if (typeof body.rateCardSheetId === "string") patch.rateCardSheetId = sheetId(body.rateCardSheetId);
+  if (typeof body.dealsSheetId === "string") patch.dealsSheetId = sheetId(body.dealsSheetId);
   if (typeof body.rateCardRange === "string") patch.rateCardRange = body.rateCardRange.trim() || "A1:H60";
   await updateMeta(user.id, "google", patch);
   return json({ ok: true });
