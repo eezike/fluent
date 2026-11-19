@@ -25,7 +25,7 @@ An agent for brand-deal workflows. It watches your Gmail, checks offers against 
 3. **Airtable / Sheets.** Add them in the Connectors sheet (Airtable token with `data.records:read/write`, `schema.bases:read`; a Sheets tab named `Deals` with a header row).
 4. **Env.** `cp apps/web/.env.example apps/web/.env.local` and fill it in (`openssl rand -base64 32` for `ENCRYPTION_KEY`).
 5. **Run.** `npm install && npm run dev`.
-6. **Deploy.** Vercel with Root Directory `apps/web`. `vercel.json` schedules the 15-minute cron; Vercel Hobby only allows daily crons, so on Hobby call `/api/cron/sync` with `Authorization: Bearer $CRON_SECRET` from an external scheduler. Without Pub/Sub, run the cron every minute instead.
+6. **Deploy.** Vercel with Root Directory `apps/web`. `vercel.json` schedules a daily cron (all Vercel Hobby allows). For frequent syncing, on Pro change it to `*/15 * * * *`, or on Hobby call `/api/cron/sync` with `Authorization: Bearer $CRON_SECRET` from an external scheduler. Without Pub/Sub, run the cron every minute instead.
 7. **Pub/Sub push.** Set `GMAIL_PUBSUB_TOPIC` (`projects/<id>/topics/<name>`) and `GMAIL_PUSH_TOKEN`. Grant `gmail-api-push@system.gserviceaccount.com` the Pub/Sub Publisher role on the topic, and point a push subscription at `<APP_URL>/api/webhooks/gmail?token=<GMAIL_PUSH_TOKEN>`.
 8. **Extension.** `FLUENT_API_URL=https://your-app.vercel.app npm run build:extension`, then load `apps/extension/dist` unpacked in `chrome://extensions`.
 
